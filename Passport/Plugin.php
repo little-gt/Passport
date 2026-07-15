@@ -10,7 +10,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @package Passport
  * @author GARFIELDTOM
  * @copyright Copyright (c) 2026 GARFIELDTOM
- * @version 1.1.3
+ * @version 1.1.4
  * @link https://www.garfieldtom.cool/
  * @license GNU General Public License 2.0
  */
@@ -873,9 +873,9 @@ JS;
         $db = Typecho_Db::get();
         $prefix = $db->getPrefix();
         $table = $prefix . 'password_reset_tokens';
-        $adapterName = $db->getAdapterName();
+        $adapter = $db->getAdapterName();
 
-        if (false !== strpos($adapterName, 'Pgsql')) {
+        if (false !== stristr($adapter, 'Pgsql')) {
             // PostgreSQL: 使用标准类型，不支持 UNSIGNED 和 TINYINT
             $sql = "CREATE TABLE IF NOT EXISTS {$table} (
                 token VARCHAR(64) NOT NULL,
@@ -891,7 +891,7 @@ JS;
             } catch (Exception $e) {
                 // 索引可能已存在，忽略错误
             }
-        } elseif (false !== strpos($adapterName, 'SQLite')) {
+        } elseif (false !== stristr($adapter, 'SQLite')) {
             // SQLite: 使用 INTEGER，不支持 UNSIGNED，TINYINT 会自动转换为 INTEGER
             $sql = "CREATE TABLE IF NOT EXISTS {$table} (
                 token VARCHAR(64) NOT NULL,
@@ -935,9 +935,9 @@ JS;
         $db = Typecho_Db::get();
         $prefix = $db->getPrefix();
         $table = $prefix . 'passport_fails';
-        $adapterName = $db->getAdapterName();
+        $adapter = $db->getAdapterName();
 
-        if (false !== strpos($adapterName, 'Pgsql')) {
+        if (false !== stristr($adapter, 'Pgsql')) {
             // PostgreSQL: 使用标准类型
             $sql = "CREATE TABLE IF NOT EXISTS {$table} (
                 ip VARCHAR(45) NOT NULL,
@@ -952,7 +952,7 @@ JS;
             } catch (Exception $e) {
                 // 紫引可能已存在，忽略错误
             }
-        } elseif (false !== strpos($adapterName, 'SQLite')) {
+        } elseif (false !== stristr($adapter, 'SQLite')) {
             // SQLite: 使用 INTEGER
             $sql = "CREATE TABLE IF NOT EXISTS {$table} (
                 ip VARCHAR(45) NOT NULL,
