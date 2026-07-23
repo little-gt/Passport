@@ -2,7 +2,7 @@
 
 Passport 是为 Typecho 博客系统设计的专业密码找回与重置插件，集成多种人机验证机制、防暴力破解和 IP 速率限制功能。支持 MySQL、SQLite 和 PostgreSQL 数据库，提供完整的密码重置历史审计和请求日志管理。本项目遵循 GPLv2 协议，完全免费开源。
 
-[![Passport Version](https://img.shields.io/badge/Passport-v1.2.0-007EC6?style=for-the-badge&logo=securityscorecard&logoColor=white)](https://github.com/little-gt/Passport)
+[![Passport Version](https://img.shields.io/badge/Passport-v1.2.0-rc1-007EC6?style=for-the-badge&logo=securityscorecard&logoColor=white)](https://github.com/little-gt/Passport)
 [![PHP Version](https://img.shields.io/badge/PHP-7.4+-007EC6?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2.0-green?style=for-the-badge)](https://opensource.org/licenses/GPL-2.0)
 

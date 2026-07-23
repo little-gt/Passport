@@ -41,11 +41,11 @@ include 'partial/header.php';
     </div>
 
     <!-- Right Side: Reset Form -->
-    <div class="w-full md:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-16 overflow-y-auto" style="background: var(--booadmin-surface);">
+    <div class="w-full md:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-16 overflow-y-auto bg-white">
         <div class="w-full max-w-md space-y-8">
             <div class="text-center md:text-left">
-                <h2 class="text-3xl font-bold mb-2" style="color: var(--booadmin-text);"><?php _e('重置密码'); ?></h2>
-                <p style="color: var(--booadmin-muted);"><?php _e('请输入您的新密码'); ?></p>
+                <h2 class="text-3xl font-bold text-gray-900 mb-2"><?php _e('重置密码'); ?></h2>
+                <p class="text-gray-500"><?php _e('请输入您的新密码'); ?></p>
             </div>
 
             <form action="<?php echo passport_route_url('/passport/reset'); ?>" method="post" enctype="application/x-www-form-urlencoded" class="space-y-6">
@@ -53,15 +53,15 @@ include 'partial/header.php';
                 <input type="hidden" name="signature" value="<?php echo $signature; ?>">
 
                 <div>
-                    <label for="password-input" class="block text-sm font-medium mb-1" style="color: var(--booadmin-text);"><?php _e('新密码'); ?> <span style="color: var(--booadmin-danger);">*</span></label>
-                    <input id="password-input" name="password" type="password" class="w-full px-4 py-3 border text-sm focus:outline-none focus:ring-2 transition-all" style="background: var(--booadmin-bg); border-color: var(--booadmin-border); color: var(--booadmin-text); --tw-ring-color: var(--booadmin-accent);" required placeholder="<?php _e('请输入新密码'); ?>" autocomplete="new-password">
-                    <p class="mt-1 text-xs" style="color: var(--booadmin-muted);"><?php _e('建议使用特殊字符与字母、数字的混编样式，以增加系统安全性'); ?></p>
+                    <label for="password-input" class="block text-sm font-medium text-gray-700 mb-1"><?php _e('新密码'); ?> <span style="color: var(--booadmin-danger);">*</span></label>
+                    <input id="password-input" name="password" type="password" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-discord-accent/50 focus:border-discord-accent transition-all" required placeholder="<?php _e('请输入新密码'); ?>" autocomplete="new-password">
+                    <p class="mt-1 text-xs text-gray-500"><?php _e('建议使用特殊字符与字母、数字的混编样式，以增加系统安全性'); ?></p>
                 </div>
 
                 <div>
-                    <label for="confirm-input" class="block text-sm font-medium mb-1" style="color: var(--booadmin-text);"><?php _e('密码确认'); ?> <span style="color: var(--booadmin-danger);">*</span></label>
-                    <input id="confirm-input" name="confirm" type="password" class="w-full px-4 py-3 border text-sm focus:outline-none focus:ring-2 transition-all" style="background: var(--booadmin-bg); border-color: var(--booadmin-border); color: var(--booadmin-text); --tw-ring-color: var(--booadmin-accent);" required placeholder="<?php _e('请再次输入密码'); ?>" autocomplete="new-password">
-                    <p class="mt-1 text-xs" style="color: var(--booadmin-muted);"><?php _e('请确认你的密码，与上面输入的密码保持一致'); ?></p>
+                    <label for="confirm-input" class="block text-sm font-medium text-gray-700 mb-1"><?php _e('密码确认'); ?> <span style="color: var(--booadmin-danger);">*</span></label>
+                    <input id="confirm-input" name="confirm" type="password" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-discord-accent/50 focus:border-discord-accent transition-all" required placeholder="<?php _e('请再次输入密码'); ?>" autocomplete="new-password">
+                    <p class="mt-1 text-xs text-gray-500"><?php _e('请确认你的密码，与上面输入的密码保持一致'); ?></p>
                 </div>
 
                 <input name="do" type="hidden" value="password">
@@ -70,9 +70,9 @@ include 'partial/header.php';
                 <div>
                     <label for="captcha-input" class="block text-sm font-medium mb-1" style="color: var(--booadmin-text);"><?php _e('验证码'); ?> <span style="color: var(--booadmin-danger);">*</span></label>
                     <div class="flex gap-3">
-                        <input type="text" name="captcha" id="captcha-input" class="flex-1 min-w-0 px-4 py-3 border text-sm focus:outline-none focus:ring-2 transition-all" style="background: var(--booadmin-bg); border-color: var(--booadmin-border); color: var(--booadmin-text); --tw-ring-color: var(--booadmin-accent);" required placeholder="<?php _e('请输入验证码'); ?>" autocomplete="off">
+                        <input type="text" name="captcha" id="captcha-input" class="flex-1 min-w-0 px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-discord-accent/50 focus:border-discord-accent transition-all" required placeholder="<?php _e('请输入验证码'); ?>" autocomplete="off">
                         <div class="relative w-32 h-12 flex-shrink-0" style="width:128px;height:48px;">
-                            <div class="passport-captcha-loader absolute inset-0 flex items-center justify-center" style="background: var(--booadmin-bg);">
+                            <div class="passport-captcha-loader absolute inset-0 flex items-center justify-center" style="background: var(--booadmin-surface-2);">
                                 <i class="fas fa-spinner fa-spin" style="color: var(--booadmin-muted);"></i>
                             </div>
                             <img class="passport-captcha-img w-full h-full object-cover cursor-pointer hidden" width="128" height="48" alt="<?php _e('验证码'); ?>" title="<?php _e('点击图片刷新验证码'); ?>" onclick="refreshCaptcha(this);">
@@ -97,20 +97,11 @@ include 'partial/header.php';
                 <?php endif; ?>
 
                 <div>
-                    <button type="submit" class="w-full flex justify-center py-3 px-4 text-sm font-medium text-white transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2" style="background: var(--booadmin-accent); --tw-ring-color: var(--booadmin-accent);">
+                    <button type="submit" class="w-full flex justify-center py-3 px-4 border text-sm font-medium text-white bg-discord-accent hover:bg-discord-accent/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-discord-accent transition-all">
                         <?php _e('更新密码'); ?>
                     </button>
                 </div>
             </form>
-
-            <div class="relative">
-                <div class="absolute inset-0 flex items-center">
-                    <div class="w-full border-t" style="border-color: var(--booadmin-border);"></div>
-                </div>
-                <div class="relative flex justify-center text-sm">
-                    <span class="px-2" style="background: var(--booadmin-surface); color: var(--booadmin-muted);"><?php _e('想起密码了？'); ?></span>
-                </div>
-            </div>
 
             <div>
                 <a href="<?php $options->adminUrl('login.php'); ?>" class="block w-full text-center py-3 px-4 border text-sm font-medium transition-all hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2" style="background: var(--booadmin-bg); border-color: var(--booadmin-border); color: var(--booadmin-muted); --tw-ring-color: var(--booadmin-border-strong);">

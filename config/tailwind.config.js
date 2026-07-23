@@ -1,8 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    'c:/Users/coole/Documents/GitHub/BooAdmin/chajian/Passport/Passport/Template/*.php',
-    'c:/Users/coole/Documents/GitHub/BooAdmin/chajian/Passport/Passport/Template/partial/*.php'
+    './chajian/Passport/Passport/Template/*.php',
+    './chajian/Passport/Passport/Template/partial/*.php'
   ],
   theme: {
     extend: {

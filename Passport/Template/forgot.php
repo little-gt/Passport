@@ -37,35 +37,35 @@ include 'partial/header.php';
     </div>
 
     <!-- Right Side: Forgot Form -->
-    <div class="w-full md:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-16 overflow-y-auto" style="background: var(--booadmin-surface);">
+    <div class="w-full md:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-16 overflow-y-auto bg-white">
         <div class="w-full max-w-md space-y-8">
             <div class="text-center md:text-left">
-                <h2 class="text-3xl font-bold mb-2" style="color: var(--booadmin-text);"><?php _e('找回密码'); ?></h2>
-                <p style="color: var(--booadmin-muted);"><?php _e('请输入您的邮箱地址以接收重置链接'); ?></p>
+                <h2 class="text-3xl font-bold text-gray-900 mb-2"><?php _e('找回密码'); ?></h2>
+                <p class="text-gray-500"><?php _e('请输入您的邮箱地址以接收重置链接'); ?></p>
             </div>
 
             <form action="<?php echo passport_route_url('/passport/forgot'); ?>" method="post" enctype="application/x-www-form-urlencoded" class="space-y-6">
                 <div>
-                    <label for="mail-input" class="block text-sm font-medium mb-1" style="color: var(--booadmin-text);"><?php _e('邮箱'); ?> <span style="color: var(--booadmin-danger);">*</span></label>
-                    <input id="mail-input" name="mail" type="email" class="w-full px-4 py-3 border text-sm focus:outline-none focus:ring-2 transition-all" style="background: var(--booadmin-bg); border-color: var(--booadmin-border); color: var(--booadmin-text); --tw-ring-color: var(--booadmin-accent);" required placeholder="<?php _e('请输入您的邮箱地址'); ?>" autocomplete="email">
-                    <p class="mt-1 text-xs" style="color: var(--booadmin-muted);"><?php _e('请输入您忘记密码的账号所对应的邮箱地址'); ?></p>
+                    <label for="mail-input" class="block text-sm font-medium text-gray-700 mb-1"><?php _e('邮箱'); ?> <span style="color: var(--booadmin-danger);">*</span></label>
+                    <input id="mail-input" name="mail" type="email" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-discord-accent/50 focus:border-discord-accent transition-all" required placeholder="<?php _e('请输入您的邮箱地址'); ?>" autocomplete="email">
+                    <p class="mt-1 text-xs text-gray-500"><?php _e('请输入您忘记密码的账号所对应的邮箱地址'); ?></p>
                 </div>
 
                 <input name="do" type="hidden" value="mail">
 
                 <?php if ($captchaType === 'default'): ?>
                 <div>
-                    <label for="captcha-input" class="block text-sm font-medium mb-1" style="color: var(--booadmin-text);"><?php _e('验证码'); ?> <span style="color: var(--booadmin-danger);">*</span></label>
+                    <label for="captcha-input" class="block text-sm font-medium text-gray-700 mb-1"><?php _e('验证码'); ?> <span style="color: var(--booadmin-danger);">*</span></label>
                     <div class="flex gap-3">
-                        <input type="text" name="captcha" id="captcha-input" class="flex-1 min-w-0 px-4 py-3 border text-sm focus:outline-none focus:ring-2 transition-all" style="background: var(--booadmin-bg); border-color: var(--booadmin-border); color: var(--booadmin-text); --tw-ring-color: var(--booadmin-accent);" required placeholder="<?php _e('请输入验证码'); ?>" autocomplete="off">
+                        <input type="text" name="captcha" id="captcha-input" class="flex-1 min-w-0 px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-discord-accent/50 focus:border-discord-accent transition-all" required placeholder="<?php _e('请输入验证码'); ?>" autocomplete="off">
                         <div class="relative w-32 h-12 flex-shrink-0" style="width:128px;height:48px;">
-                            <div class="passport-captcha-loader absolute inset-0 flex items-center justify-center" style="background: var(--booadmin-bg);">
+                            <div class="passport-captcha-loader absolute inset-0 flex items-center justify-center" style="background: var(--booadmin-surface-2);">
                                 <i class="fas fa-spinner fa-spin" style="color: var(--booadmin-muted);"></i>
                             </div>
                             <img class="passport-captcha-img w-full h-full object-cover cursor-pointer hidden" width="128" height="48" alt="<?php _e('验证码'); ?>" title="<?php _e('点击图片刷新验证码'); ?>" onclick="refreshCaptcha(this);">
                         </div>
                     </div>
-                    <p class="mt-1 text-xs" style="color: var(--booadmin-muted);"><?php _e('请输入图片中的字符，不区分大小写'); ?></p>
+                    <p class="mt-1 text-xs text-gray-500"><?php _e('请输入图片中的字符，不区分大小写'); ?></p>
                 </div>
                 <?php elseif ($captchaType === 'recaptcha' && !empty($recaptchaSiteKey)): ?>
                 <div class="flex justify-center">
@@ -84,7 +84,7 @@ include 'partial/header.php';
                 <?php endif; ?>
 
                 <div>
-                    <button type="submit" class="w-full flex justify-center py-3 px-4 text-sm font-medium text-white transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2" style="background: var(--booadmin-accent); --tw-ring-color: var(--booadmin-accent);">
+                    <button type="submit" class="w-full flex justify-center py-3 px-4 border text-sm font-medium text-white bg-discord-accent hover:bg-discord-accent/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-discord-accent transition-all">
                         <?php _e('发送重置链接'); ?>
                     </button>
                 </div>
