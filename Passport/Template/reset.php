@@ -36,7 +36,7 @@ include 'partial/header.php';
             <p class="text-lg opacity-90"><?php $options->description(); ?></p>
         </div>
         <div class="absolute bottom-6 text-white/50 text-xs">
-            &copy; <?php echo date('Y'); ?> <?php $options->title(); ?>.
+            Copyright &copy; <?php echo date('Y'); ?> Passport Team. All rights reserved
         </div>
     </div>
 
