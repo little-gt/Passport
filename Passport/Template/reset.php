@@ -3,40 +3,42 @@
 /**
  * 重置密码页面模板
  * 用户点击邮件链接后，输入新密码的页面。
+ *
+ * UI 与 BooAdmin 登录页同源：同一张 hero 图、同一套渐变遮罩、
+ * 同一套按钮语义变量（--booadmin-accent-button）。
+ *
  * @package Passport
- * @version 1.2.0
  */
 
-// 导入公共变量和初始化
-include 'partial/common.php';
+include __DIR__ . '/partial/common.php';
 
 /** @var \Widget\Options $options */
 
-// 设置页面标题
 $menuTitle = _t('重置密码');
 
-// 从配置中安全获取 CAPTCHA 相关的变量，并进行 HTML 转义
-$captchaType = htmlspecialchars((string) ($this->config->captchaType ?? 'default'));
-$recaptchaSiteKey = htmlspecialchars((string) ($this->config->sitekeyRecaptcha ?? ''));
-$hcaptchaSiteKey = htmlspecialchars((string) ($this->config->sitekeyHcaptcha ?? ''));
-$geetestCaptchaId = htmlspecialchars((string) ($this->config->captchaIdGeetest ?? ''));
+$captchaType = (string) ($this->config->captchaType ?? 'default');
+$recaptchaSiteKey = (string) ($this->config->sitekeyRecaptcha ?? '');
+$hcaptchaSiteKey = (string) ($this->config->sitekeyHcaptcha ?? '');
+$geetestCaptchaId = (string) ($this->config->captchaIdGeetest ?? '');
 
-// 从 Request 中安全获取 token 和 signature (用于构造 Form Action)
-$token = htmlspecialchars((string) ($this->request->token ?? ''));
-$signature = htmlspecialchars((string) ($this->request->signature ?? ''));
+// token / signature 只用于回传表单值，属性输出时统一转义
+$token = (string) ($this->request->token ?? '');
+$signature = (string) ($this->request->signature ?? '');
 
-include 'partial/header.php';
+$heroImage = 'https://cdn.garfieldtom.cool/img/wldairy/poster/illustration/MemoryAdministrationBureau.jpg';
+
+include __DIR__ . '/partial/header.php';
 ?>
 <div class="min-h-screen flex bg-discord-light text-discord-text">
-    <!-- Left Side: Hero Image -->
-    <div class="hidden md:flex md:w-1/2 flex-col justify-center items-center bg-cover bg-center relative" style="background-image: url('https://cdn.garfieldtom.cool/img/wldairy/poster/horizontal/%E9%81%87%E8%A7%81%E4%BD%A0%E7%9A%84%E7%8C%AB_%E9%82%A3%E4%B8%80%E5%A4%A9.jpg');">
+    <!-- Left Side: Hero Image（与 admin/login.php 完全一致） -->
+    <div class="hidden md:flex md:w-1/2 flex-col justify-center items-center bg-cover bg-center relative" style="background-color: var(--booadmin-hero-fallback); background-image: linear-gradient(135deg, var(--booadmin-hero-gradient-a), var(--booadmin-hero-gradient-b)), url('<?php echo htmlspecialchars($heroImage, ENT_QUOTES, 'UTF-8'); ?>');">
         <div class="absolute inset-0 pointer-events-none" style="background-color: var(--booadmin-hero-overlay);"></div>
         <div class="relative z-10 text-white p-12 text-center">
             <h1 class="text-4xl font-bold mb-4"><?php $options->title(); ?></h1>
             <p class="text-lg opacity-90"><?php $options->description(); ?></p>
         </div>
         <div class="absolute bottom-6 text-white/50 text-xs">
-            Copyright &copy; <?php echo date('Y'); ?> Passport Team. All rights reserved
+            Copyright &copy; <?php echo date('Y'); ?> BooAdmin Team. All rights reserved
         </div>
     </div>
 
@@ -48,9 +50,9 @@ include 'partial/header.php';
                 <p class="text-gray-500"><?php _e('请输入您的新密码'); ?></p>
             </div>
 
-            <form action="<?php echo passport_route_url('/passport/reset'); ?>" method="post" enctype="application/x-www-form-urlencoded" class="space-y-6">
-                <input type="hidden" name="token" value="<?php echo $token; ?>">
-                <input type="hidden" name="signature" value="<?php echo $signature; ?>">
+            <form action="<?php echo htmlspecialchars(passportRoute('/passport/reset'), ENT_QUOTES, 'UTF-8'); ?>" method="post" enctype="application/x-www-form-urlencoded" class="space-y-6">
+                <input type="hidden" name="token" value="<?php echo htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="signature" value="<?php echo htmlspecialchars($signature, ENT_QUOTES, 'UTF-8'); ?>">
 
                 <div>
                     <label for="password-input" class="block text-sm font-medium text-gray-700 mb-1"><?php _e('新密码'); ?> <span style="color: var(--booadmin-danger);">*</span></label>
@@ -75,20 +77,20 @@ include 'partial/header.php';
                             <div class="passport-captcha-loader absolute inset-0 flex items-center justify-center" style="background: var(--booadmin-surface-2);">
                                 <i class="fas fa-spinner fa-spin" style="color: var(--booadmin-muted);"></i>
                             </div>
-                            <img class="passport-captcha-img w-full h-full object-cover cursor-pointer hidden" width="128" height="48" alt="<?php _e('验证码'); ?>" title="<?php _e('点击图片刷新验证码'); ?>" onclick="refreshCaptcha(this);">
+                            <img class="passport-captcha-img w-full h-full object-cover cursor-pointer hidden" width="128" height="48" alt="<?php _e('验证码'); ?>" title="<?php _e('点击图片刷新验证码'); ?>" data-captcha-url="<?php echo htmlspecialchars($options->index('/passport/captcha'), ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
                     </div>
                     <p class="mt-1 text-xs" style="color: var(--booadmin-muted);"><?php _e('请输入图片中的字符，不区分大小写'); ?></p>
                 </div>
-                <?php elseif ($captchaType === 'recaptcha' && !empty($recaptchaSiteKey)): ?>
+                <?php elseif ($captchaType === 'recaptcha' && $recaptchaSiteKey !== ''): ?>
                 <div class="flex justify-center">
-                    <div class="g-recaptcha" data-sitekey="<?php echo $recaptchaSiteKey; ?>"></div>
+                    <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars($recaptchaSiteKey, ENT_QUOTES, 'UTF-8'); ?>"></div>
                 </div>
-                <?php elseif ($captchaType === 'hcaptcha' && !empty($hcaptchaSiteKey)): ?>
+                <?php elseif ($captchaType === 'hcaptcha' && $hcaptchaSiteKey !== ''): ?>
                 <div class="flex justify-center">
-                    <div class="h-captcha" data-sitekey="<?php echo $hcaptchaSiteKey; ?>"></div>
+                    <div class="h-captcha" data-sitekey="<?php echo htmlspecialchars($hcaptchaSiteKey, ENT_QUOTES, 'UTF-8'); ?>"></div>
                 </div>
-                <?php elseif ($captchaType === 'geetest' && !empty($geetestCaptchaId)): ?>
+                <?php elseif ($captchaType === 'geetest' && $geetestCaptchaId !== ''): ?>
                 <div id="captcha-geetest"></div>
                 <input type="hidden" name="lot_number" id="lot_number">
                 <input type="hidden" name="captcha_output" id="captcha_output">
@@ -97,16 +99,16 @@ include 'partial/header.php';
                 <?php endif; ?>
 
                 <div>
-                    <button type="submit" class="w-full flex justify-center py-3 px-4 border text-sm font-medium text-white bg-discord-accent hover:bg-discord-accent/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-discord-accent transition-all">
+                    <button type="submit" class="passport-btn-primary w-full flex justify-center py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-discord-accent transition-all">
                         <?php _e('更新密码'); ?>
                     </button>
                 </div>
             </form>
 
             <div>
-                <a href="<?php $options->adminUrl('login.php'); ?>" class="block w-full text-center py-3 px-4 border text-sm font-medium transition-all hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2" style="background: var(--booadmin-bg); border-color: var(--booadmin-border); color: var(--booadmin-muted); --tw-ring-color: var(--booadmin-border-strong);">
+                <button type="button" data-nav-url="<?php echo htmlspecialchars($options->adminUrl('login.php'), ENT_QUOTES, 'UTF-8'); ?>" class="passport-btn-primary w-full flex justify-center py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-discord-accent transition-all">
                     <?php _e('返回登录'); ?>
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -115,134 +117,68 @@ include 'partial/header.php';
 <?php // --- 按需加载第三方 CAPTCHA 脚本 --- ?>
 <?php if ($captchaType === 'default'): ?>
 <script>
-function refreshCaptcha(imgElement) {
-    if (imgElement.classList.contains('refreshing')) return;
+(function () {
+    function refreshCaptcha(img) {
+        if (img.dataset.refreshing === '1') return;
+        img.dataset.refreshing = '1';
 
-    const loader = imgElement.previousElementSibling;
-    imgElement.classList.add('refreshing', 'hidden');
-    loader.classList.remove('hidden');
+        var loader = img.previousElementSibling;
+        img.classList.add('hidden');
+        if (loader) loader.classList.remove('hidden');
 
-    const baseUrl = imgElement.src ? imgElement.src.split('?')[0] : '<?php $options->index("/passport/captcha"); ?>';
-    imgElement.src = baseUrl + '?' + Math.random();
+        var base = img.getAttribute('data-captcha-url') || '';
+        img.src = base + '?' + Math.random();
 
-    imgElement.onload = function() {
-        imgElement.classList.remove('refreshing', 'hidden');
-        loader.classList.add('hidden');
-    };
-    imgElement.onerror = function() {
-        imgElement.classList.remove('refreshing', 'hidden');
-        loader.classList.add('hidden');
-    };
-}
+        function done() {
+            img.classList.remove('hidden');
+            if (loader) loader.classList.add('hidden');
+            img.dataset.refreshing = '0';
+        }
+        img.onload = done;
+        img.onerror = done;
+    }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const captchaImg = document.querySelector('.passport-captcha-img');
-    if (captchaImg) refreshCaptcha(captchaImg);
-});
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.passport-captcha-img').forEach(function (img) {
+            img.addEventListener('click', function () { refreshCaptcha(img); });
+            refreshCaptcha(img);
+        });
+    });
+})();
 </script>
-<?php elseif ($captchaType === 'recaptcha' && !empty($recaptchaSiteKey)): ?>
+<?php elseif ($captchaType === 'recaptcha' && $recaptchaSiteKey !== ''): ?>
 <script src="https://www.recaptcha.net/recaptcha/api.js" async defer></script>
-<?php elseif ($captchaType === 'hcaptcha' && !empty($hcaptchaSiteKey)): ?>
+<?php elseif ($captchaType === 'hcaptcha' && $hcaptchaSiteKey !== ''): ?>
 <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
-<?php elseif ($captchaType === 'geetest' && !empty($geetestCaptchaId)): ?>
+<?php elseif ($captchaType === 'geetest' && $geetestCaptchaId !== ''): ?>
 <script src="https://static.geetest.com/v4/gt4.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const captchaElement = document.getElementById('captcha-geetest');
-    if (captchaElement) {
-        initGeetest4({
-            captchaId: '<?php echo $geetestCaptchaId; ?>',
-            product: 'popup',
-            language: 'zh-cn'
-        }, function (captcha) {
-            captcha.appendTo(captchaElement);
-            captcha.onSuccess(function () {
-                const result = captcha.getValidate();
-                if (result) {
-                    document.getElementById('lot_number').value = result.lot_number;
-                    document.getElementById('captcha_output').value = result.captcha_output;
-                    document.getElementById('pass_token').value = result.pass_token;
-                    document.getElementById('gen_time').value = result.gen_time;
-                }
+    var el = document.getElementById('captcha-geetest');
+    if (!el || typeof initGeetest4 !== 'function') return;
+
+    initGeetest4({
+        captchaId: <?php echo passportJson($geetestCaptchaId); ?>,
+        product: 'popup',
+        language: 'zh-cn'
+    }, function (captcha) {
+        captcha.appendTo(el);
+        captcha.onSuccess(function () {
+            var result = captcha.getValidate();
+            if (!result) return;
+            ['lot_number', 'captcha_output', 'pass_token', 'gen_time'].forEach(function (key) {
+                var input = document.getElementById(key);
+                if (input) input.value = result[key] || '';
             });
         });
-    }
+    });
 });
 </script>
 <?php endif; ?>
 
 <script>document.body.classList.add('loaded');</script>
 
-<?php
-// 显示 Session 中的通知
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (isset($_SESSION['passport_notice'])) {
-    $notice = $_SESSION['passport_notice'];
-    unset($_SESSION['passport_notice']);
-    
-    // 确保容器存在
-    echo '<div id="typecho-notification-container"></div>';
-    
-    // 图标映射
-    $icons = [
-        'success' => '<i class="fas fa-check-circle"></i>',
-        'error' => '<i class="fas fa-times-circle"></i>',
-        'notice' => '<i class="fas fa-exclamation-triangle"></i>',
-        'info' => '<i class="fas fa-info-circle"></i>',
-        'warning' => '<i class="fas fa-exclamation-triangle"></i>'
-    ];
-    
-    // 标题映射
-    $titles = [
-        'success' => '操作成功',
-        'error' => '出错了',
-        'notice' => '注意',
-        'info' => '提示',
-        'warning' => '警告'
-    ];
-    
-    $type = $notice['type'] ?? 'notice';
-    $message = $notice['message'] ?? '';
-    $icon = $icons[$type] ?? $icons['notice'];
-    $title = $titles[$type] ?? $titles['notice'];
-    
-    // 构建通知元素（与 BooAdmin 完全一致）
-    echo '<script>';
-    echo '(function() {';
-    echo '  var type = "' . $type . '";';
-    echo '  var icon = \'' . $icon . '\';';
-    echo '  var title = "' . $title . '";';
-    echo '  var message = "' . addslashes($message) . '";';
-    echo '  ';
-    echo '  var notification = document.createElement("div");';
-    echo '  notification.className = "typecho-notification " + type;';
-    echo '  notification.innerHTML = ';
-    echo '    \'<div class="typecho-notification-icon">\' + icon + \'</div>\' +';
-    echo '    \'<div class="typecho-notification-content">\' +';
-    echo '      \'<div class="typecho-notification-title">\' + title + \'</div>\' +';
-    echo '      \'<div class="typecho-notification-messages">\' + message + \'</div>\' +';
-    echo '    \'</div>\' +';
-    echo '    \'<button class="typecho-notification-close" aria-label="关闭"><i class="fas fa-times"></i></button>\';';
-    echo '  ';
-    echo '  document.getElementById("typecho-notification-container").appendChild(notification);';
-    echo '  ';
-    echo '  setTimeout(function() { notification.classList.add("show"); }, 10);';
-    echo '  ';
-    echo '  notification.querySelector(".typecho-notification-close").addEventListener("click", function() {';
-    echo '    notification.classList.add("hide");';
-    echo '    setTimeout(function() { notification.remove(); }, 300);';
-    echo '  });';
-    echo '  ';
-    echo '  setTimeout(function() {';
-    echo '    notification.classList.add("hide");';
-    echo '    setTimeout(function() { notification.remove(); }, 300);';
-    echo '  }, 5000);';
-    echo '})();';
-    echo '</script>';
-}
-?>
+<?php include __DIR__ . '/partial/notice.php'; ?>
 
 </body>
 </html>

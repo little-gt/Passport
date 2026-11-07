@@ -1,5 +1,22 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
+
+namespace TypechoPlugin\Passport;
+
+use Typecho\Db;
+use Typecho\Db\Exception as DbException;
+use Typecho\Plugin\Exception as PluginException;
+use Typecho\Plugin\PluginInterface;
+use Typecho\Widget\Helper\Form;
+use Typecho\Widget\Helper\Form\Element\Password;
+use Typecho\Widget\Helper\Form\Element\Radio;
+use Typecho\Widget\Helper\Form\Element\Select;
+use Typecho\Widget\Helper\Form\Element\Text;
+use Typecho\Widget\Helper\Form\Element\Textarea;
+use Utils\Helper;
+
+if (!defined('__TYPECHO_ROOT_DIR__')) {
+    exit;
+}
 
 /**
  * 密码找回插件
@@ -10,16 +27,16 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @package Passport
  * @author GARFIELDTOM
  * @copyright Copyright (c) 2026 GARFIELDTOM
- * @version 1.2.0
+ * @version 1.2.1
  * @link https://www.garfieldtom.cool/
  * @license GNU General Public License 2.0
  */
-
-class Passport_Plugin implements Typecho_Plugin_Interface
+class Plugin implements PluginInterface
 {
-    /**
-     * 路由名称常量：忘记密码
-     */
+    /** 插件版本：同时用作静态资源缓存后缀，升级时统一破缓存 */
+    public const VERSION = '1.2.1-RC1';
+
+    /** 路由名称常量：忘记密码 */
     const ROUTE_FORGOT_NAME = 'passport_forgot';
 
     /**
@@ -61,7 +78,7 @@ class Passport_Plugin implements Typecho_Plugin_Interface
      * 3. 返回激活成功提示。
      *
      * @return string 激活成功提示
-     * @throws Typecho_Plugin_Exception 如果操作失败
+     * @throws PluginException 如果操作失败
      */
     public static function activate(): string
     {
@@ -72,19 +89,19 @@ class Passport_Plugin implements Typecho_Plugin_Interface
             self::createFailLogTable();
 
             // 注册前端页面路由
-            Helper::addRoute(self::ROUTE_FORGOT_NAME, self::ROUTE_FORGOT_PATH, 'Passport_Widget', 'doForgot');
-            Helper::addRoute(self::ROUTE_RESET_NAME, self::ROUTE_RESET_PATH, 'Passport_Widget', 'doReset');
+            Helper::addRoute(self::ROUTE_FORGOT_NAME, self::ROUTE_FORGOT_PATH, Widget::class, 'doForgot');
+            Helper::addRoute(self::ROUTE_RESET_NAME, self::ROUTE_RESET_PATH, Widget::class, 'doReset');
             
             // 注册内置验证码图片路由
-            Helper::addRoute(self::ROUTE_CAPTCHA_NAME, self::ROUTE_CAPTCHA_PATH, 'Passport_Widget', 'renderCaptcha');
+            Helper::addRoute(self::ROUTE_CAPTCHA_NAME, self::ROUTE_CAPTCHA_PATH, Widget::class, 'renderCaptcha');
 
             // 注册后台 Action 路由 (用于 IP 解封)
-            Helper::addAction('passport-unblock', 'Passport_Widget');
+            Helper::addAction('passport-unblock', Widget::class);
 
             return _t('插件已激活！默认启用内置图片验证码。请根据需要配置 SMTP 和 IP 获取策略。');
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('Passport activate failed: ' . $e->getMessage());
-            throw new Typecho_Plugin_Exception(_t('激活失败：%s。请检查数据库权限和日志。', $e->getMessage()));
+            throw new PluginException(_t('激活失败：%s。请检查数据库权限和日志。', $e->getMessage()));
         }
     }
 
@@ -104,18 +121,18 @@ class Passport_Plugin implements Typecho_Plugin_Interface
             $config = NULL;
             try {
                 $config = Helper::options()->plugin('Passport');
-            } catch (Typecho_Plugin_Exception $e) {
+            } catch (PluginException $e) {
                 // 配置不存在是正常情况（如插件未配置过），继续执行清理
             }
 
             // 检查是否勾选了禁用时删除数据
             if (isset($config->deleteDataOnDeactivate) && $config->deleteDataOnDeactivate == '1') {
-                $db = Typecho_Db::get();
+                $db = Db::get();
                 $prefix = $db->getPrefix();
 
                 // 删除插件创建的数据库表
-                $db->query("DROP TABLE IF EXISTS `{$prefix}password_reset_tokens`", Typecho_Db::WRITE);
-                $db->query("DROP TABLE IF EXISTS `{$prefix}passport_fails`", Typecho_Db::WRITE);
+                $db->query("DROP TABLE IF EXISTS `{$prefix}password_reset_tokens`", Db::WRITE);
+                $db->query("DROP TABLE IF EXISTS `{$prefix}passport_fails`", Db::WRITE);
 
                 // 删除插件在 options 表中的所有配置项
                 $removeQuery = $db->delete($prefix . 'options')->where('name LIKE ?', 'plugin:Passport:%');
@@ -128,7 +145,7 @@ class Passport_Plugin implements Typecho_Plugin_Interface
             Helper::removeRoute(self::ROUTE_CAPTCHA_NAME);
             Helper::removeAction('passport-unblock');
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('Passport deactivate failed: ' . $e->getMessage());
             // 禁用流程不应抛出异常阻断用户操作，记录错误后继续
         }
@@ -137,10 +154,10 @@ class Passport_Plugin implements Typecho_Plugin_Interface
     /**
      * 插件配置面板
      *
-     * @param Typecho_Widget_Helper_Form $form 配置表单对象
+     * @param Form $form 配置表单对象
      * @return void
      */
-    public static function config(Typecho_Widget_Helper_Form $form)
+    public static function config(Form $form)
     {
         // IP 解封请求的完整 URL
         // 使用相对路径避免双重拼接
@@ -148,11 +165,11 @@ class Passport_Plugin implements Typecho_Plugin_Interface
 
         // --- 邮件服务配置组 ---
 
-        $host = new Typecho_Widget_Helper_Form_Element_Text('host', NULL, 'smtp.example.com', _t('SMTP 服务器'), _t('<span style="color: var(--booadmin-danger, #dc2626); font-weight: 600;">必须</span> 如: smtp.163.com'));
-        $port = new Typecho_Widget_Helper_Form_Element_Text('port', NULL, '465', _t('SMTP 端口'), _t('<span style="color: var(--booadmin-danger, #dc2626); font-weight: 600;">必须</span> 如: 25、465(SSL)、587(TLS)'));
-        $username = new Typecho_Widget_Helper_Form_Element_Text('username', NULL, 'noreply@example.com', _t('SMTP 帐号'), _t('<span style="color: var(--booadmin-danger, #dc2626); font-weight: 600;">必须</span> 如: example@163.com'));
-        $password = new Typecho_Widget_Helper_Form_Element_Password('password', NULL, '', _t('SMTP 密码'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 如账号为无需密码验证的账号，可以留空。<span style="color: var(--booadmin-success, #16a34a); font-weight: 500;">推荐配置客户端授权码。</span>'));
-        $secure = new Typecho_Widget_Helper_Form_Element_Select('secure', ['ssl' => _t('SSL'), 'tls' => _t('TLS'), 'none' => _t('无')], 'ssl', _t('加密类型'));
+        $host = new Text('host', NULL, 'smtp.example.com', _t('SMTP 服务器'), _t('<span style="color: var(--booadmin-danger, #dc2626); font-weight: 600;">必须</span> 如: smtp.163.com'));
+        $port = new Text('port', NULL, '465', _t('SMTP 端口'), _t('<span style="color: var(--booadmin-danger, #dc2626); font-weight: 600;">必须</span> 如: 25、465(SSL)、587(TLS)'));
+        $username = new Text('username', NULL, 'noreply@example.com', _t('SMTP 帐号'), _t('<span style="color: var(--booadmin-danger, #dc2626); font-weight: 600;">必须</span> 如: example@163.com'));
+        $password = new Password('password', NULL, '', _t('SMTP 密码'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 如账号为无需密码验证的账号，可以留空。<span style="color: var(--booadmin-success, #16a34a); font-weight: 500;">推荐配置客户端授权码。</span>'));
+        $secure = new Select('secure', ['ssl' => _t('SSL'), 'tls' => _t('TLS'), 'none' => _t('无')], 'ssl', _t('加密类型'));
 
         $form->addInput($host);
         $form->addInput($port);
@@ -199,13 +216,13 @@ class Passport_Plugin implements Typecho_Plugin_Interface
                                 </table>
                             </body>
                             </html>';
-        $emailTemplate = new Typecho_Widget_Helper_Form_Element_Textarea('emailTemplate', NULL, $defaultTemplate, _t('<h2>邮件模板配置</h2>邮件内容'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 请使用 {username} {sitename} {requestTime} {resetLink} 作为占位符'));
+        $emailTemplate = new Textarea('emailTemplate', NULL, $defaultTemplate, _t('<h2>邮件模板配置</h2>邮件内容'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 请使用 {username} {sitename} {requestTime} {resetLink} 作为占位符'));
         $form->addInput($emailTemplate);
 
         // --- 人机验证配置组 ---
 
         // 移除了 'none' 选项，强制开启验证
-        $captchaType = new Typecho_Widget_Helper_Form_Element_Select(
+        $captchaType = new Select(
             'captchaType',
             [
                 'default'   => _t('内置图片验证码 (默认)'),
@@ -219,47 +236,47 @@ class Passport_Plugin implements Typecho_Plugin_Interface
         );
         $form->addInput($captchaType);
 
-        $sitekeyRecaptcha = new Typecho_Widget_Helper_Form_Element_Text('sitekeyRecaptcha', NULL, '', _t('reCAPTCHA Site Key'), _t('访问 <a href="https://www.google.com/recaptcha/admin" target="_blank">reCAPTCHA 控制台</a> 获取。'));
-        $secretkeyRecaptcha = new Typecho_Widget_Helper_Form_Element_Text('secretkeyRecaptcha', NULL, '', _t('reCAPTCHA Secret Key'), _t('访问 <a href="https://www.google.com/recaptcha/admin" target="_blank">reCAPTCHA 控制台</a> 获取。'));
+        $sitekeyRecaptcha = new Text('sitekeyRecaptcha', NULL, '', _t('reCAPTCHA Site Key'), _t('访问 <a href="https://www.google.com/recaptcha/admin" target="_blank">reCAPTCHA 控制台</a> 获取。'));
+        $secretkeyRecaptcha = new Text('secretkeyRecaptcha', NULL, '', _t('reCAPTCHA Secret Key'), _t('访问 <a href="https://www.google.com/recaptcha/admin" target="_blank">reCAPTCHA 控制台</a> 获取。'));
         $form->addInput($sitekeyRecaptcha);
         $form->addInput($secretkeyRecaptcha);
 
-        $sitekeyHcaptcha = new Typecho_Widget_Helper_Form_Element_Text('sitekeyHcaptcha', NULL, '', _t('hCaptcha Site Key'), _t('访问 <a href="https://dashboard.hcaptcha.com/login/" target="_blank">hCaptcha 控制台</a> 获取。'));
-        $secretkeyHcaptcha = new Typecho_Widget_Helper_Form_Element_Text('secretkeyHcaptcha', NULL, '', _t('hCaptcha Secret Key'), _t('访问 <a href="https://dashboard.hcaptcha.com/login/" target="_blank">hCaptcha 控制台</a> 获取。'));
+        $sitekeyHcaptcha = new Text('sitekeyHcaptcha', NULL, '', _t('hCaptcha Site Key'), _t('访问 <a href="https://dashboard.hcaptcha.com/login/" target="_blank">hCaptcha 控制台</a> 获取。'));
+        $secretkeyHcaptcha = new Text('secretkeyHcaptcha', NULL, '', _t('hCaptcha Secret Key'), _t('访问 <a href="https://dashboard.hcaptcha.com/login/" target="_blank">hCaptcha 控制台</a> 获取。'));
         $form->addInput($sitekeyHcaptcha);
         $form->addInput($secretkeyHcaptcha);
 
-        $captchaIdGeetest = new Typecho_Widget_Helper_Form_Element_Text('captchaIdGeetest', NULL, '', _t('Geetest CAPTCHA ID'), _t('访问 <a href="https://auth.geetest.com/login/" target="_blank">GEETEST 控制台</a> 获取。'));
-        $captchaKeyGeetest = new Typecho_Widget_Helper_Form_Element_Text('captchaKeyGeetest', NULL, '', _t('Geetest CAPTCHA KEY'), _t('访问 <a href="https://auth.geetest.com/login/" target="_blank">GEETEST 控制台</a> 获取。'));
+        $captchaIdGeetest = new Text('captchaIdGeetest', NULL, '', _t('Geetest CAPTCHA ID'), _t('访问 <a href="https://auth.geetest.com/login/" target="_blank">GEETEST 控制台</a> 获取。'));
+        $captchaKeyGeetest = new Text('captchaKeyGeetest', NULL, '', _t('Geetest CAPTCHA KEY'), _t('访问 <a href="https://auth.geetest.com/login/" target="_blank">GEETEST 控制台</a> 获取。'));
         $form->addInput($captchaIdGeetest);
         $form->addInput($captchaKeyGeetest);
 
         // --- 高级设置组 ---
 
-        $secretKey = new Typecho_Widget_Helper_Form_Element_Text('secretKey', NULL, self::generateStrongRandomKey(32), _t('<h2>安全策略配置</h2>HMAC 签名密钥'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 用于令牌签名验证的密钥。首次激活时已自动生成，<span style="color: var(--booadmin-danger, #dc2626); font-weight: 600;">留空将禁用签名验证（极不推荐）</span>。'));
+        $secretKey = new Text('secretKey', NULL, self::generateStrongRandomKey(32), _t('<h2>安全策略配置</h2>HMAC 签名密钥'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 用于令牌签名验证的密钥。首次激活时已自动生成，<span style="color: var(--booadmin-danger, #dc2626); font-weight: 600;">留空将禁用签名验证（极不推荐）</span>。'));
         $form->addInput($secretKey);
 
-        $enableRateLimit = new Typecho_Widget_Helper_Form_Element_Radio('enableRateLimit', ['1' => _t('启用'), '0' => _t('禁用')], '1', _t('启用请求速率限制'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 可防止暴力破解和邮件滥用，并自动临时封禁风险IP。'));
+        $enableRateLimit = new Radio('enableRateLimit', ['1' => _t('启用'), '0' => _t('禁用')], '1', _t('启用请求速率限制'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 可防止暴力破解和邮件滥用，并自动临时封禁风险IP。'));
         $form->addInput($enableRateLimit);
 
-        $deleteDataOnDeactivate = new Typecho_Widget_Helper_Form_Element_Radio('deleteDataOnDeactivate', ['1' => _t('是，删除所有数据'), '0' => _t('否，保留数据')], '0', _t('禁用插件时删除数据'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 选择"是"将在禁用插件时，永久删除此插件创建的所有数据库表和设置。'));
+        $deleteDataOnDeactivate = new Radio('deleteDataOnDeactivate', ['1' => _t('是，删除所有数据'), '0' => _t('否，保留数据')], '0', _t('禁用插件时删除数据'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 选择"是"将在禁用插件时，永久删除此插件创建的所有数据库表和设置。'));
         $form->addInput($deleteDataOnDeactivate);
 
         // --- 日志管理设置组 ---
-        $logPageSize = new Typecho_Widget_Helper_Form_Element_Text('logPageSize', NULL, '25', _t('<h2>日志管理配置</h2>请求日志每页显示数'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 设置请求日志每页显示的记录数量，建议设置为 10-50 之间的数值。'));
+        $logPageSize = new Text('logPageSize', NULL, '25', _t('<h2>日志管理配置</h2>请求日志每页显示数'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 设置请求日志每页显示的记录数量，建议设置为 10-50 之间的数值。'));
         $form->addInput($logPageSize);
 
-        $logRetentionDays = new Typecho_Widget_Helper_Form_Element_Text('logRetentionDays', NULL, '0', _t('请求日志保留天数'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 自动清理超过指定天数的请求日志记录，设置为 0 表示不自动清理。'));
+        $logRetentionDays = new Text('logRetentionDays', NULL, '0', _t('请求日志保留天数'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 自动清理超过指定天数的请求日志记录，设置为 0 表示不自动清理。'));
         $form->addInput($logRetentionDays);
 
-        $resetHistoryPageSize = new Typecho_Widget_Helper_Form_Element_Text('resetHistoryPageSize', NULL, '25', _t('密码重置历史每页显示数'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 设置密码重置历史每页显示的记录数量，建议设置为 10-50 之间的数值。'));
+        $resetHistoryPageSize = new Text('resetHistoryPageSize', NULL, '25', _t('密码重置历史每页显示数'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 设置密码重置历史每页显示的记录数量，建议设置为 10-50 之间的数值。'));
         $form->addInput($resetHistoryPageSize);
 
-        $tokenRetentionDays = new Typecho_Widget_Helper_Form_Element_Text('tokenRetentionDays', NULL, '30', _t('密码重置历史保留天数'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 保留已使用和过期的 Token 记录的天数。设置为 0 表示永久保留。'));
+        $tokenRetentionDays = new Text('tokenRetentionDays', NULL, '30', _t('密码重置历史保留天数'), _t('<span style="color: var(--booadmin-info, #2563eb); font-weight: 500;">说明</span> 保留已使用和过期的 Token 记录的天数。设置为 0 表示永久保留。'));
         $form->addInput($tokenRetentionDays);
 
         // --- IP 策略设置组 ---
-        $ipSource = new Typecho_Widget_Helper_Form_Element_Select(
+        $ipSource = new Select(
             'ipSource',
             [
                 'default' => _t('默认 (REMOTE_ADDR)'),
@@ -272,7 +289,7 @@ class Passport_Plugin implements Typecho_Plugin_Interface
         );
         $form->addInput($ipSource);
 
-        $customIpHeader = new Typecho_Widget_Helper_Form_Element_Text(
+        $customIpHeader = new Text(
             'customIpHeader',
             NULL,
             'HTTP_CF_CONNECTING_IP',
@@ -285,7 +302,7 @@ class Passport_Plugin implements Typecho_Plugin_Interface
         try {
             echo '<h2>' . _t('请求日志与封禁状态') . '</h2>';
             echo self::renderFailLogTable($actionUrl);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             echo '<p style="color: var(--booadmin-danger, #dc2626); font-weight: 600;">' . _t('风险日志加载失败：%s', htmlspecialchars($e->getMessage())) . '</p>';
             error_log('Passport config risk log failed: ' . $e->getMessage());
         }
@@ -294,7 +311,7 @@ class Passport_Plugin implements Typecho_Plugin_Interface
         try {
             echo '<h2>' . _t('密码重置历史记录') . '</h2>';
             echo self::renderPasswordResetHistory();
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             echo '<p style="color: var(--booadmin-danger, #dc2626); font-weight: 600;">' . _t('密码重置历史加载失败：%s', htmlspecialchars($e->getMessage())) . '</p>';
             error_log('Passport config password reset history failed: ' . $e->getMessage());
         }
@@ -306,10 +323,10 @@ class Passport_Plugin implements Typecho_Plugin_Interface
     /**
      * 个人配置面板（空实现）
      *
-     * @param Typecho_Widget_Helper_Form $form 个人配置表单
+     * @param Form $form 个人配置表单
      * @return void
      */
-    public static function personalConfig(Typecho_Widget_Helper_Form $form) {}
+    public static function personalConfig(Form $form) {}
 
     /**
      * 渲染失败日志表格
@@ -319,7 +336,7 @@ class Passport_Plugin implements Typecho_Plugin_Interface
      */
     private static function renderFailLogTable(string $actionUrl): string
     {
-        $db = Typecho_Db::get();
+        $db = Db::get();
         $prefix = $db->getPrefix();
 
         // 获取配置
@@ -343,7 +360,7 @@ class Passport_Plugin implements Typecho_Plugin_Interface
             try {
                 $db->query($db->delete("{$prefix}passport_fails")
                     ->where('last_attempt < ?', $expireTime));
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('Passport: Failed to clean old logs - ' . $e->getMessage());
             }
         }
@@ -378,10 +395,10 @@ class Passport_Plugin implements Typecho_Plugin_Interface
 
             // 获取当前页数据
             $logs = $db->fetchAll($select
-                ->order("{$prefix}passport_fails.last_attempt", Typecho_Db::SORT_DESC)
+                ->order("{$prefix}passport_fails.last_attempt", Db::SORT_DESC)
                 ->limit($pageSize)
                 ->offset($offset));
-        } catch (Typecho_Db_Exception $e) {
+        } catch (DbException $e) {
             return '<p>' . _t('日志表尚未创建，保存配置后将会自动创建。') . '</p>';
         }
 
@@ -545,7 +562,7 @@ class Passport_Plugin implements Typecho_Plugin_Interface
      */
     private static function renderPasswordResetHistory(): string
     {
-        $db = Typecho_Db::get();
+        $db = Db::get();
         $prefix = $db->getPrefix();
 
         // 获取配置
@@ -582,12 +599,12 @@ class Passport_Plugin implements Typecho_Plugin_Interface
             // 获取当前页数据（关联用户表获取邮箱）
             // 使用 AS 关键字定义表别名，确保 PostgreSQL 和 SQLite 兼容性
             $logs = $db->fetchAll($select
-                ->join("{$prefix}users AS users", "tokens.uid = users.uid", Typecho_Db::LEFT_JOIN)
+                ->join("{$prefix}users AS users", "tokens.uid = users.uid", Db::LEFT_JOIN)
                 ->select("tokens.uid", "tokens.token", "tokens.created_at", "tokens.used", "users.mail")
-                ->order("tokens.created_at", Typecho_Db::SORT_DESC)
+                ->order("tokens.created_at", Db::SORT_DESC)
                 ->limit($pageSize)
                 ->offset($offset));
-        } catch (Typecho_Db_Exception $e) {
+        } catch (DbException $e) {
             return '<p>' . _t('密码重置记录表尚未创建，保存配置后将会自动创建。') . '</p>';
         }
 
@@ -848,7 +865,7 @@ JS;
         if (function_exists('random_bytes')) {
             try {
                 return bin2hex(random_bytes($length));
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 // Ignore
             }
         }
@@ -866,11 +883,11 @@ JS;
      * 使用 IF NOT EXISTS 确保已存在时不会报错或覆盖
      *
      * @return void
-     * @throws Typecho_Db_Exception
+     * @throws DbException
      */
     private static function createTokenTable()
     {
-        $db = Typecho_Db::get();
+        $db = Db::get();
         $prefix = $db->getPrefix();
         $table = $prefix . 'password_reset_tokens';
         $adapter = $db->getAdapterName();
@@ -888,7 +905,7 @@ JS;
             try {
                 $db->query("CREATE INDEX IF NOT EXISTS idx_{$table}_uid ON {$table} (uid)");
                 $db->query("CREATE INDEX IF NOT EXISTS idx_{$table}_created_at ON {$table} (created_at)");
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 // 索引可能已存在，忽略错误
             }
         } elseif (false !== stristr($adapter, 'SQLite')) {
@@ -904,7 +921,7 @@ JS;
             try {
                 $db->query("CREATE INDEX IF NOT EXISTS idx_{$table}_uid ON {$table} (uid)");
                 $db->query("CREATE INDEX IF NOT EXISTS idx_{$table}_created_at ON {$table} (created_at)");
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 // 紫引可能已存在，忽略错误
             }
         } else {
@@ -928,11 +945,11 @@ JS;
      * 使用 IF NOT EXISTS 确保已存在时不会报错或覆盖
      *
      * @return void
-     * @throws Typecho_Db_Exception
+     * @throws DbException
      */
     private static function createFailLogTable()
     {
-        $db = Typecho_Db::get();
+        $db = Db::get();
         $prefix = $db->getPrefix();
         $table = $prefix . 'passport_fails';
         $adapter = $db->getAdapterName();
@@ -949,7 +966,7 @@ JS;
             // PostgreSQL 创建索引需要单独执行
             try {
                 $db->query("CREATE INDEX IF NOT EXISTS idx_{$table}_locked_until ON {$table} (locked_until)");
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 // 紫引可能已存在，忽略错误
             }
         } elseif (false !== stristr($adapter, 'SQLite')) {
@@ -964,7 +981,7 @@ JS;
             // SQLite 创建索引
             try {
                 $db->query("CREATE INDEX IF NOT EXISTS idx_{$table}_locked_until ON {$table} (locked_until)");
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 // 紫引可能已存在，忽略错误
             }
         } else {

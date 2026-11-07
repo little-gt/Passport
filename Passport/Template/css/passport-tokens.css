@@ -1,0 +1,149 @@
+/*
+ * Passport 主题令牌 —— 单一变量源
+ *
+ * 取值严格对齐 BooAdmin 的 admin/css/light.css 与 admin/css/dark.css。
+ * 历史上这些变量被复制进 partial/header.php 的内联 <style>（141 处），
+ * 主题调色板一变就会漂移；现在集中到本文件，便于核对与同步。
+ *
+ * 按钮一律使用 --booadmin-accent-button 系列，与登录页按钮同色：
+ * 亮色模式为品牌蓝紫（#5865f2），不使用白底按钮。
+ */
+
+:root {
+    color-scheme: light;
+
+    /* 背景 / 表面 */
+    --booadmin-bg: #f2f3f5;
+    --booadmin-surface: #ffffff;
+    --booadmin-surface-2: #f9fafb;
+    --booadmin-surface-muted: #f3f4f6;
+    --booadmin-active: #d4d7dc;
+    --booadmin-highlight-soft: #f3f4f6;
+
+    /* 边框 */
+    --booadmin-border: #e5e7eb;
+    --booadmin-border-strong: #d1d5db;
+
+    /* 文本 */
+    --booadmin-text: #2e3338;
+    --booadmin-muted: #5c5e66;
+    --booadmin-placeholder: #9ca3af;
+
+    /* 强调与链接 */
+    --booadmin-accent: #5865f2;
+    --booadmin-accent-hover: #4752c4;
+    --booadmin-link: #467b96;
+
+    /* 按钮：与登录页同一套语义变量 */
+    --booadmin-accent-button: #5865f2;
+    --booadmin-accent-button-hover: #4752c4;
+    --booadmin-accent-button-border: #5865f2;
+    --booadmin-on-accent-button: #ffffff;
+    --booadmin-on-accent-button-hover: #ffffff;
+
+    /* 语义色 */
+    --booadmin-success: #16a34a;
+    --booadmin-warning: #ea580c;
+    --booadmin-danger: #dc2626;
+    --booadmin-error-text: #9b1c1c;
+    --booadmin-info: #2563eb;
+    --booadmin-info-bg: #eff6ff;
+
+    /* Hero（与登录页一致） */
+    --booadmin-hero-overlay: rgba(0, 0, 0, 0.58);
+    --booadmin-hero-fallback: #1f2430;
+    --booadmin-hero-gradient-a: rgba(31, 36, 48, 0.28);
+    --booadmin-hero-gradient-b: rgba(31, 36, 48, 0.28);
+
+    /* Tailwind 品牌类别名 */
+    --color-discord-light: var(--booadmin-bg);
+    --color-discord-accent: var(--booadmin-accent);
+    --color-discord-text: var(--booadmin-text);
+    --color-discord-muted: var(--booadmin-muted);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+
+        --booadmin-bg: #000000;
+        --booadmin-surface: #0d0d0d;
+        --booadmin-surface-2: #151515;
+        --booadmin-surface-muted: #080808;
+        --booadmin-active: #1a1a1a;
+        --booadmin-highlight-soft: #111111;
+
+        --booadmin-border: #222222;
+        --booadmin-border-strong: #333333;
+
+        --booadmin-text: #e4e4e7;
+        --booadmin-muted: #a1a1aa;
+        --booadmin-placeholder: #71717a;
+
+        --booadmin-accent: #6366c7;
+        --booadmin-accent-hover: #7c7fd6;
+        --booadmin-link: #7c7fd6;
+
+        --booadmin-accent-button: #3a3c6e;
+        --booadmin-accent-button-hover: #46487d;
+        --booadmin-accent-button-border: #484a78;
+        --booadmin-on-accent-button: #c4c8e8;
+        --booadmin-on-accent-button-hover: #ddddef;
+
+        --booadmin-success: #6bc78a;
+        --booadmin-warning: #d4a72a;
+        --booadmin-danger: #e07a7a;
+        --booadmin-error-text: #e8aaaa;
+        --booadmin-info: #7aadf0;
+        --booadmin-info-bg: #081420;
+
+        --booadmin-hero-overlay: rgba(0, 0, 0, 0.65);
+        --booadmin-hero-fallback: #0a0a0a;
+        --booadmin-hero-gradient-a: rgba(10, 10, 10, 0.3);
+        --booadmin-hero-gradient-b: rgba(10, 10, 10, 0.3);
+    }
+}
+
+/*
+ * 主按钮：与登录页按钮完全同色，亮色模式下也是品牌色而非白色。
+ * 用语义变量而非 Tailwind 的 .bg-discord-accent，避免明暗模式出现两套取值。
+ */
+.passport-btn-primary {
+    /* 本页不加载 Tailwind preflight，需显式抹平 <button> 的浏览器默认外观，
+       使「提交」与「返回登录」两个真实按钮的盒模型、字体、外观完全一致 */
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: 0;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 0;
+    cursor: pointer;
+
+    background-color: var(--booadmin-accent-button);
+    color: var(--booadmin-on-accent-button);
+    border: 1px solid var(--booadmin-accent-button-border);
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.passport-btn-primary:hover {
+    background-color: var(--booadmin-accent-button-hover);
+    color: var(--booadmin-on-accent-button-hover);
+}
+
+.passport-btn-primary:focus-visible {
+    outline: 2px solid var(--booadmin-accent);
+    outline-offset: 2px;
+}
+
+/* 页面入场过渡，避免样式未就绪时闪白 */
+body { opacity: 0; transition: opacity 0.15s ease; }
+body.loaded { opacity: 1; }

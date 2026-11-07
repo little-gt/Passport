@@ -1,5 +1,29 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
+
+namespace TypechoPlugin\Passport;
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
+use Typecho\Common;
+use Typecho\Db;
+use Typecho\Db\Exception as DbException;
+use Typecho\Http\Client as HttpClient;
+use Typecho\Http\Client\Exception as HttpClientException;
+use Typecho\Widget as BaseWidget;
+use Typecho\Widget\Exception as WidgetException;
+use Typecho\Widget\Helper\Form;
+use Typecho\Widget\Helper\Form\Element\Password;
+use Typecho\Widget\Helper\Form\Element\Text;
+use Utils\PasswordHash;
+use Widget\ActionInterface;
+use Widget\Notice;
+use Widget\Options;
+use Widget\Security;
+use Widget\User;
+
+if (!defined('__TYPECHO_ROOT_DIR__')) {
+    exit;
+}
 
 /**
  * 找回密码核心逻辑类 - Passport
@@ -7,45 +31,31 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * 负责处理前端路由请求、验证码生成与校验、邮件发送、
  * IP 速率限制及数据交互逻辑。
  *
+ * 命名遵循 Typecho 插件规范：TypechoPlugin\<Name>\Widget，
+ * 由路由表按全限定类名解析，不依赖旧式 class_alias 兼容层。
+ *
  * @package Passport
  * @author GARFIELDTOM
  * @copyright Copyright (c) 2026 GARFIELDTOM & 小否先生
- * @version 1.2.0
+ * @version 1.2.1
  * @link https://garfieldtom.cool/
  * @license GNU General Public License 2.0
  */
 
-// 引入 PHPMailer 依赖
-require_once 'PHPMailer/src/Exception.php';
-require_once 'PHPMailer/src/PHPMailer.php';
-require_once 'PHPMailer/src/SMTP.php';
+// 引入 PHPMailer 依赖（用 __DIR__ 绝对路径，不依赖 include_path / cwd）
+require_once __DIR__ . '/PHPMailer/src/Exception.php';
+require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
+require_once __DIR__ . '/PHPMailer/src/SMTP.php';
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception as PHPMailerException;
-use Typecho\Common;
-use Typecho\Db\Exception as DbException;
-use Typecho\Widget;
-use Typecho\Http\Client as HttpClient;
-use Typecho\Http\Client\Exception as HttpClientException;
-use Typecho\Widget\Exception as WidgetException;
-use Utils\PasswordHash;
-use Widget\ActionInterface;
-
-class Passport_Widget extends Widget implements ActionInterface
+class Widget extends BaseWidget implements ActionInterface
 {
-    /**
-     * @var Widget_Options Typecho 配置组件
-     */
+    /** @var Options Typecho 配置组件 */
     private $options;
 
-    /**
-     * @var mixed 插件私有配置
-     */
+    /** @var mixed 插件私有配置 */
     private $config;
 
-    /**
-     * @var Typecho_Db 数据库实例
-     */
+    /** @var Db 数据库实例 */
     private $db;
 
     /**
@@ -58,9 +68,9 @@ class Passport_Widget extends Widget implements ActionInterface
     public function __construct($request, $response, $params = NULL)
     {
         parent::__construct($request, $response, $params);
-        $this->options = Widget::widget('Widget_Options');
+        $this->options = Options::alloc();
         $this->config = $this->options->plugin('Passport');
-        $this->db = Typecho_Db::get();
+        $this->db = Db::get();
         $this->initSession();
     }
 
@@ -76,13 +86,13 @@ class Passport_Widget extends Widget implements ActionInterface
         // 初始化用户对象
         // Action 路由时需要手动初始化
         if (empty($this->user)) {
-            $this->user = Widget::widget('Widget_User');
+            $this->user = User::alloc();
         }
 
         // 鉴权
         // 仅管理员可操作
         $this->user->pass('administrator');
-        $security = Widget::widget('Widget_Security');
+        $security = Security::alloc();
         $security->protect();
 
         if ($this->request->isPost()) {
@@ -269,7 +279,7 @@ class Passport_Widget extends Widget implements ActionInterface
         }
         
         // 导入模板（GET 请求或 POST 处理后重定向回来）
-        require_once 'Template/forgot.php';
+        require __DIR__ . '/Template/forgot.php';
     }
 
     /**
@@ -368,7 +378,7 @@ class Passport_Widget extends Widget implements ActionInterface
         }
         
         // 导入模板（GET 请求或 POST 处理后重定向回来）
-        require_once 'Template/reset.php';
+        require __DIR__ . '/Template/reset.php';
     }
 
     /**
@@ -427,7 +437,7 @@ class Passport_Widget extends Widget implements ActionInterface
         }
 
         try {
-            Widget::widget('Widget_Notice')->set($message, $type);
+            Notice::alloc()->set($message, $type);
         } catch (\Throwable $e) {
             $this->pushNotice($message, $type);
         }
@@ -724,7 +734,7 @@ class Passport_Widget extends Widget implements ActionInterface
             // 获取分页数据
             $offset = ($page - 1) * $pageSize;
             $logs = $this->db->fetchAll($query
-                ->order("{$prefix}passport_fails.last_attempt", Typecho_Db::SORT_DESC)
+                ->order("{$prefix}passport_fails.last_attempt", Db::SORT_DESC)
                 ->limit($pageSize)
                 ->offset($offset));
 
@@ -742,7 +752,7 @@ class Passport_Widget extends Widget implements ActionInterface
                     ]
                 ]
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $this->response->setStatus(500);
             $this->response->setContentType('application/json');
             echo json_encode([
@@ -784,7 +794,7 @@ class Passport_Widget extends Widget implements ActionInterface
                 'success' => true,
                 'message' => _t('IP [%s] 已解封。', htmlspecialchars($ip))
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $this->response->setStatus(500);
             $this->response->setContentType('application/json');
             echo json_encode([
@@ -854,7 +864,7 @@ class Passport_Widget extends Widget implements ActionInterface
                 'success' => true,
                 'message' => $message
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $this->response->setStatus(500);
             $this->response->setContentType('application/json');
             echo json_encode([
@@ -936,22 +946,22 @@ class Passport_Widget extends Widget implements ActionInterface
 
     // --- 表单生成 ---
 
-    public function forgotForm(): Typecho_Widget_Helper_Form
+    public function forgotForm(): Form
     {
-        $form = new Typecho_Widget_Helper_Form(NULL, Typecho_Widget_Helper_Form::POST_METHOD);
-        $mail = new Typecho_Widget_Helper_Form_Element_Text('mail', NULL, NULL, _t('邮箱'), NULL);
+        $form = new Form(NULL, Form::POST_METHOD);
+        $mail = new Text('mail', NULL, NULL, _t('邮箱'), NULL);
         $form->addInput($mail);
         $mail->addRule('required', _t('请填写邮箱'));
         $mail->addRule('email', _t('邮箱格式错误'));
         return $form;
     }
 
-    public function resetForm(): Typecho_Widget_Helper_Form
+    public function resetForm(): Form
     {
-        $form = new Typecho_Widget_Helper_Form(NULL, Typecho_Widget_Helper_Form::POST_METHOD);
-        $pwd = new Typecho_Widget_Helper_Form_Element_Password('password', NULL, NULL, _t('新密码'), NULL);
+        $form = new Form(NULL, Form::POST_METHOD);
+        $pwd = new Password('password', NULL, NULL, _t('新密码'), NULL);
         $form->addInput($pwd);
-        $confirm = new Typecho_Widget_Helper_Form_Element_Password('confirm', NULL, NULL, _t('确认密码'), NULL);
+        $confirm = new Password('confirm', NULL, NULL, _t('确认密码'), NULL);
         $form->addInput($confirm);
         $pwd->addRule('required', _t('请填写密码'));
         $confirm->addRule('confirm', _t('两次密码不一致'), 'password');
@@ -1083,7 +1093,7 @@ class Passport_Widget extends Widget implements ActionInterface
                 echo Common::url('/passport/reset', $this->options->index);
                 return;
             default:
-                throw new Exception("Method {$name} not found");
+                throw new \RuntimeException("Method {$name} not found");
         }
     }
 }
