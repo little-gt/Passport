@@ -34,9 +34,16 @@ $assetVersion = passportAssetVersion();
 
         <style>
             /* 本页不加载 Tailwind preflight，需补上等价的基础盒模型重置：
-               否则浏览器默认 content-box 下，带内边距的栏（如右侧表单区的
-               w-1/2 + p-*）宽度会超出 50%，与左侧 hero（无 padding）比例错位。 */
-            *, ::before, ::after { box-sizing: border-box; }
+               1) box-sizing: 否则 content-box 下带内边距的栏宽度会超出 50%；
+               2) border 基样式: Tailwind 的 `border`(width) 只设宽度，border-style
+                  由 preflight 设为 solid。缺失时浏览器默认 border-style:none，
+                  输入框的 border 虽设了宽度与颜色却看不到实线边框。 */
+            *, ::before, ::after {
+                box-sizing: border-box;
+                border-width: 0;
+                border-style: solid;
+                border-color: var(--booadmin-border, currentColor);
+            }
             html { height: 100%; }
             body {
                 /* 本页不加载 Tailwind preflight，必须显式清掉浏览器默认的
